@@ -46,6 +46,14 @@ namespace Rased_Project
               .AddRoleStore<RoleStore<ApplicationRole, ApplicationDbContext, Guid>>();
 
 
+
+
+            builder.Services.AddCors(options => {
+                options.AddDefaultPolicy(policy => {
+                    policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                });
+            });
+
             //builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 

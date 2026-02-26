@@ -13,7 +13,7 @@ namespace Rased.Core.DTO
 
         [Required(ErrorMessage = "Phone Number is required")]
         [Phone(ErrorMessage = "Invalid phone number format")]
-        [RegularExpression("^[1-9]*$", ErrorMessage = "Phone number Should be in digits only")]
+        [RegularExpression("^[0-9]*$", ErrorMessage = "Phone number Should be in digits only")]
         [Remote(action: "IsPhoneNumberAvailable", controller: "Account", ErrorMessage = "Phone number is already in use")]
         public string PhoneNumber { get; set; } = default!;
         [Required(ErrorMessage = "password is required")]
