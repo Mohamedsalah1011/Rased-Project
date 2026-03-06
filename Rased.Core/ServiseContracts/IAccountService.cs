@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Rased.Core.DTO;
 using Rased.Core.Identity;
 using System;
@@ -11,7 +11,10 @@ namespace Rased.Core.ServiseContracts
     {
         Task<ActionResult<ApplicationUser>> PostRegister(RegisterDTO registerDTO);
         Task<IActionResult> IsPhoneNumberAvailable(string phoneNumber);
+        Task<IActionResult> IsEmailAvailable(string email);
         Task<IActionResult> PostLogin(LoginDTo loginDTo);
         Task<IActionResult> GetLogout();
+        Task<IActionResult> ForgotPasswordSendOtp(SendOtpDto request);
+        Task<IActionResult> ResetPasswordWithOtp(ResetPasswordWithOtpDto request);
     }
 }

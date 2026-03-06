@@ -22,7 +22,7 @@ namespace Rased_Project
 
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddTransient<IJWTService, JwtService>();
-            builder.Services.AddScoped<ISmsSender, ConsoleSmsSender>();
+            builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
             builder.Services.AddScoped<IOtpService, OtpService>();
             builder.Services.AddMemoryCache();
             builder.Services.AddDbContext<ApplicationDbContext>(options =>

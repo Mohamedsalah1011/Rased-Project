@@ -13,7 +13,7 @@ namespace Rased.Core.Servies
     public class OtpService : IOtpService
     {
         private readonly IMemoryCache _cache;
-        private readonly ISmsSender _smsSender;
+        private readonly IEmailSender _emailSender;
         private readonly UserManager<ApplicationUser> _userManager;
 
         private const int OtpLength = 6;
@@ -21,27 +21,27 @@ namespace Rased.Core.Servies
 
         public OtpService(
             IMemoryCache cache,
-            ISmsSender smsSender,
+            IEmailSender emailSender,
             UserManager<ApplicationUser> userManager)
         {
             _cache = cache;
-            _smsSender = smsSender;
+            _emailSender = emailSender;
             _userManager = userManager;
         }
 
         public async Task<IActionResult> SendOtpAsync(SendOtpDto request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.PhoneNumber))
-                return new BadRequestObjectResult("Phone number is required.");
+            if (request == null || string.IsNullOrWhiteSpace(request.Email))
+                return new BadRequestObjectResult("Email is required.");
 
-            // Optional: ensure the phone number exists in the system
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+            // Optional: ensure the email exists in the system
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
-                return new BadRequestObjectResult("Phone number is not registered.");
+                return new BadRequestObjectResult("Email is not registered.");
 
             string code = GenerateOtp(OtpLength);
 
-            string cacheKey = GetCacheKey(request.PhoneNumber);
+            string cacheKey = GetCacheKey(request.Email);
             var entry = new OtpEntry
             {
                 Code = code,
@@ -50,45 +50,63 @@ namespace Rased.Core.Servies
 
             _cache.Set(cacheKey, entry, entry.ExpiresAt);
 
+            string subject = "Your verification code";
             string message = $"Your verification code is: {code}. It will expire in {(int)OtpLifetime.TotalMinutes} minutes.";
-            await _smsSender.SendSmsAsync(request.PhoneNumber, message);
+            await _emailSender.SendEmailAsync(request.Email, subject, message);
 
             return new OkObjectResult(new { Success = true, Message = "OTP sent successfully." });
         }
 
-        public Task<IActionResult> VerifyOtpAsync(VerifyOtpDto request)
+        public async Task<IActionResult> VerifyOtpAsync(VerifyOtpDto request)
         {
             if (request == null ||
-                string.IsNullOrWhiteSpace(request.PhoneNumber) ||
+                string.IsNullOrWhiteSpace(request.Email) ||
                 string.IsNullOrWhiteSpace(request.Code))
             {
-                return Task.FromResult<IActionResult>(new BadRequestObjectResult("Phone number and OTP code are required."));
+                return new BadRequestObjectResult("Email and OTP code are required.");
             }
 
-            string cacheKey = GetCacheKey(request.PhoneNumber);
+            bool isValid = await ValidateOtpAsync(request.Email, request.Code);
+
+            if (!isValid)
+            {
+                return new BadRequestObjectResult("OTP has expired or is invalid.");
+            }
+
+            return new OkObjectResult(new { Success = true, Message = "OTP verified successfully." });
+        }
+
+        public Task<bool> ValidateOtpAsync(string email, string code)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
+            {
+                return Task.FromResult(false);
+            }
+
+            string cacheKey = GetCacheKey(email);
 
             if (!_cache.TryGetValue<OtpEntry>(cacheKey, out var entry))
             {
-                return Task.FromResult<IActionResult>(new BadRequestObjectResult("OTP has expired or is invalid."));
+                return Task.FromResult(false);
             }
 
             if (entry.ExpiresAt < DateTime.UtcNow)
             {
                 _cache.Remove(cacheKey);
-                return Task.FromResult<IActionResult>(new BadRequestObjectResult("OTP has expired."));
+                return Task.FromResult(false);
             }
 
-            if (!string.Equals(entry.Code, request.Code, StringComparison.Ordinal))
+            if (!string.Equals(entry.Code, code, StringComparison.Ordinal))
             {
-                return Task.FromResult<IActionResult>(new BadRequestObjectResult("Invalid OTP code."));
+                return Task.FromResult(false);
             }
 
             _cache.Remove(cacheKey);
 
-            return Task.FromResult<IActionResult>(new OkObjectResult(new { Success = true, Message = "OTP verified successfully." }));
+            return Task.FromResult(true);
         }
 
-        private static string GetCacheKey(string phoneNumber) => $"otp:{phoneNumber}";
+        private static string GetCacheKey(string Email) => $"otp:{Email}";
 
         private static string GenerateOtp(int length)
         {

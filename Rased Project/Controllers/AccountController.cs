@@ -36,6 +36,12 @@ namespace Rased_Project.Controllers
             return await _accountService.IsPhoneNumberAvailable(phoneNumber);
         }
 
+        [HttpGet("is-email-available")]
+        public async Task<IActionResult> IsEmailAvailable(string email)
+        {
+            return await _accountService.IsEmailAvailable(email);
+        }
+
         [HttpPost("Login")]
         public async Task<IActionResult> postLogin(LoginDTo loginDTo)
         {
@@ -58,6 +64,18 @@ namespace Rased_Project.Controllers
         public async Task<IActionResult> VerifyOtp(VerifyOtpDto request)
         {
             return await _otpService.VerifyOtpAsync(request);
+        }
+
+        [HttpPost("forgot-password/send-otp")]
+        public async Task<IActionResult> ForgotPasswordSendOtp(SendOtpDto request)
+        {
+            return await _accountService.ForgotPasswordSendOtp(request);
+        }
+
+        [HttpPost("forgot-password/reset")]
+        public async Task<IActionResult> ResetPasswordWithOtp(ResetPasswordWithOtpDto request)
+        {
+            return await _accountService.ResetPasswordWithOtp(request);
         }
 
 

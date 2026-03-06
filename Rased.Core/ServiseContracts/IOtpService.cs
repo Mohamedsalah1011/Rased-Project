@@ -8,5 +8,10 @@ namespace Rased.Core.ServiseContracts
     {
         Task<IActionResult> SendOtpAsync(SendOtpDto request);
         Task<IActionResult> VerifyOtpAsync(VerifyOtpDto request);
+
+        /// <summary>
+        /// Validates an OTP code for a given phone number and consumes it if valid.
+        /// </summary>
+        Task<bool> ValidateOtpAsync(string Enail, string code);
     }
 }

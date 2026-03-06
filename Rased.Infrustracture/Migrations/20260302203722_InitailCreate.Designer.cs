@@ -12,8 +12,8 @@ using Rased_Project;
 namespace Rased.Infrustracture.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260226233127_initialstate")]
-    partial class initialstate
+    [Migration("20260302203722_InitailCreate")]
+    partial class InitailCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
