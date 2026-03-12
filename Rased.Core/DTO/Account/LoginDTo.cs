@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace Rased.Core.DTO
+namespace Rased.Core.DTO.Account
 {
     public class LoginDTo
     {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Rased.Core.DTO;
+using Rased.Core.DTO.Account.Otp;
+using Rased.Core.DTO.Account.Otp.Enum;
 using System.Threading.Tasks;
 
 namespace Rased.Core.ServiseContracts
@@ -12,6 +13,6 @@ namespace Rased.Core.ServiseContracts
         /// <summary>
         /// Validates an OTP code for a given phone number and consumes it if valid.
         /// </summary>
-        Task<bool> ValidateOtpAsync(string Enail, string code);
+        Task<bool> ValidateOtpAsync(string Enail, string code , OtpType Type);
     }
 }

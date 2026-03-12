@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Rased.Core.DTO;
+using Rased.Core.DTO.Account;
+using Rased.Core.DTO.Account.Otp;
 using Rased.Core.Identity;
 using Rased.Core.ServiseContracts;
 using System.ComponentModel.DataAnnotations;
@@ -48,10 +49,10 @@ namespace Rased_Project.Controllers
             return await _accountService.PostLogin(loginDTo);
         }
 
-        [HttpGet("Logout")]
-        public async Task<IActionResult> GetLogout()
+        [HttpPost("Logout")]
+        public async Task<IActionResult> PostLogout()
         {
-            return await _accountService.GetLogout();
+            return await _accountService.PostLogout();
         }
 
         [HttpPost("send-otp")]

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Rased.Core.DTO
+namespace Rased.Core.DTO.Account
 {
     public class ResetPasswordWithOtpDto
     {

@@ -1,7 +1,9 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Rased.Core.DTO;
+using Rased.Core.DTO.Account;
+using Rased.Core.DTO.Account.Otp;
+using Rased.Core.DTO.Account.Otp.Enum;
 using Rased.Core.Identity;
 using Rased.Core.ServiseContracts;
 using System;
@@ -52,9 +54,21 @@ namespace Rased.Core.Servies
 
                 if (result.Succeeded)
                 {
-                    await _signInManager.SignInAsync(user, false);
-                    var authenticationResonse = _jwtService.GenerateToken(user);
-                    return new OkObjectResult(authenticationResonse);
+                    
+                    var sendOtpRequest = new SendOtpDto
+                    {
+                        Email = user.Email,
+                        Type = OtpType.Register 
+                    };
+
+                    await _otpService.SendOtpAsync(sendOtpRequest);
+
+                    return new OkObjectResult(new
+                    {
+                        Success = true,
+                        Message = "User registered successfully. OTP sent to email.",
+                        Email = user.Email
+                    });
                 }
                 else
                 {
@@ -90,33 +104,25 @@ namespace Rased.Core.Servies
 
         public async Task<IActionResult> PostLogin(LoginDTo loginDTo)
         {
-            var result = await _signInManager.PasswordSignInAsync(
-                loginDTo.Email,
-                loginDTo.Password,
-                false,
-                false);
+            var user = await _userManager.FindByEmailAsync(loginDTo.Email);
+
+            if (user == null)
+                return new BadRequestObjectResult("Invalid Email or Password");
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDTo.Password, false);
 
             if (result.Succeeded)
             {
-                ApplicationUser? user = await _userManager.Users
-                    .FirstOrDefaultAsync(u => u.Email == loginDTo.Email);
-
-                if (user == null)
-                    return new NoContentResult();
-
-                await _signInManager.SignInAsync(user, false);
-
-                var authenticationResonse = _jwtService.GenerateToken(user);
-
-                return new OkObjectResult(authenticationResonse);
+                var authenticationResponse = _jwtService.GenerateToken(user);
+                return new OkObjectResult(authenticationResponse);
             }
             else
             {
-                return new ObjectResult("Invalid Email or password") { StatusCode = 500 };
+                return new BadRequestObjectResult("Invalid Email or password");
             }
         }
 
-        public async Task<IActionResult> GetLogout()
+        public async Task<IActionResult> PostLogout()
         {
             await _signInManager.SignOutAsync();
             return new OkObjectResult("Logged out successfully");
@@ -141,23 +147,19 @@ namespace Rased.Core.Servies
             if (user == null)
                 return new BadRequestObjectResult("Email is not registered.");
 
-            bool isValidOtp = await _otpService.ValidateOtpAsync(request.Email, request.Code);
+            bool isValidOtp = await _otpService.ValidateOtpAsync(request.Email, request.Code, OtpType.ForgotPassword);
 
             if (!isValidOtp)
                 return new BadRequestObjectResult("OTP has expired or is invalid.");
 
             // Reset password without requiring the old password.
-            var removeResult = await _userManager.RemovePasswordAsync(user);
-            if (!removeResult.Succeeded)
-            {
-                string errorMessage = string.Join(" | ", removeResult.Errors.Select(e => e.Description));
-                return new ObjectResult(errorMessage) { StatusCode = 500 };
-            }
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            var addResult = await _userManager.AddPasswordAsync(user, request.NewPassword);
-            if (!addResult.Succeeded)
+            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+
+            if (!result.Succeeded)
             {
-                string errorMessage = string.Join(" | ", addResult.Errors.Select(e => e.Description));
+                string errorMessage = string.Join(" | ", result.Errors.Select(e => e.Description));
                 return new ObjectResult(errorMessage) { StatusCode = 500 };
             }
 

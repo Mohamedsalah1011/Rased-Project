@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Rased.Core.DTO;
+using Rased.Core.DTO.Account.Otp;
+using Rased.Core.DTO.Account.Otp.Enum;
 using Rased.Core.Identity;
 using Rased.Core.ServiseContracts;
 using System;
@@ -34,28 +35,33 @@ namespace Rased.Core.Servies
             if (request == null || string.IsNullOrWhiteSpace(request.Email))
                 return new BadRequestObjectResult("Email is required.");
 
-            // Optional: ensure the email exists in the system
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-            if (user == null)
-                return new BadRequestObjectResult("Email is not registered.");
+            string cacheKey = GetCacheKey(request.Email, request.Type);
+
+            if (_cache.TryGetValue(cacheKey, out _))
+            {
+                return new BadRequestObjectResult("OTP already sent. Please wait.");
+            }
 
             string code = GenerateOtp(OtpLength);
 
-            string cacheKey = GetCacheKey(request.Email);
             var entry = new OtpEntry
             {
                 Code = code,
-                ExpiresAt = DateTime.UtcNow.Add(OtpLifetime)
+                ExpiresAt = DateTime.UtcNow.Add(OtpLifetime),
+                Attempts = 0,
+                Type = request.Type
             };
 
             _cache.Set(cacheKey, entry, entry.ExpiresAt);
 
             string subject = "Your verification code";
             string message = $"Your verification code is: {code}. It will expire in {(int)OtpLifetime.TotalMinutes} minutes.";
+
             await _emailSender.SendEmailAsync(request.Email, subject, message);
 
             return new OkObjectResult(new { Success = true, Message = "OTP sent successfully." });
         }
+
 
         public async Task<IActionResult> VerifyOtpAsync(VerifyOtpDto request)
         {
@@ -66,7 +72,7 @@ namespace Rased.Core.Servies
                 return new BadRequestObjectResult("Email and OTP code are required.");
             }
 
-            bool isValid = await ValidateOtpAsync(request.Email, request.Code);
+            bool isValid = await ValidateOtpAsync(request.Email, request.Code, request.Type);
 
             if (!isValid)
             {
@@ -76,19 +82,12 @@ namespace Rased.Core.Servies
             return new OkObjectResult(new { Success = true, Message = "OTP verified successfully." });
         }
 
-        public Task<bool> ValidateOtpAsync(string email, string code)
+        public Task<bool> ValidateOtpAsync(string email, string code, OtpType type)
         {
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
-            {
-                return Task.FromResult(false);
-            }
-
-            string cacheKey = GetCacheKey(email);
+            string cacheKey = GetCacheKey(email, type);
 
             if (!_cache.TryGetValue<OtpEntry>(cacheKey, out var entry))
-            {
                 return Task.FromResult(false);
-            }
 
             if (entry.ExpiresAt < DateTime.UtcNow)
             {
@@ -96,8 +95,16 @@ namespace Rased.Core.Servies
                 return Task.FromResult(false);
             }
 
-            if (!string.Equals(entry.Code, code, StringComparison.Ordinal))
+            if (entry.Attempts >= 5)
             {
+                _cache.Remove(cacheKey);
+                return Task.FromResult(false);
+            }
+
+            if (entry.Code != code)
+            {
+                entry.Attempts++;
+                _cache.Set(cacheKey, entry, entry.ExpiresAt);
                 return Task.FromResult(false);
             }
 
@@ -106,7 +113,7 @@ namespace Rased.Core.Servies
             return Task.FromResult(true);
         }
 
-        private static string GetCacheKey(string Email) => $"otp:{Email}";
+        
 
         private static string GenerateOtp(int length)
         {
@@ -131,6 +138,12 @@ namespace Rased.Core.Servies
         {
             public string Code { get; set; } = default!;
             public DateTime ExpiresAt { get; set; }
+            public int Attempts { get; set; }
+            public OtpType Type { get; set; }
+        }
+        private static string GetCacheKey(string email, OtpType type)
+        {
+            return $"otp:{type}:{email}";
         }
     }
 }

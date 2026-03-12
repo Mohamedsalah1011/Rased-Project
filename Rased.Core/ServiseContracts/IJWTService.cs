@@ -1,4 +1,4 @@
-﻿using Rased.Core.DTO;
+﻿using Rased.Core.DTO.Account;
 using Rased.Core.Identity;
 using System;
 using System.Collections.Generic;

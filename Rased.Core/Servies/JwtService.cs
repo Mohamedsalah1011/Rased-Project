@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Rased.Core.DTO;
+using Rased.Core.DTO.Account;
 using Rased.Core.Identity;
 using Rased.Core.ServiseContracts;
 using System;
@@ -30,13 +30,13 @@ namespace Rased.Core.Servies
             // Claims are pieces of information about the user that are encoded in the token.
             Claim[] claims = new[]
             {
-               new Claim(JwtRegisteredClaimNames.Sub,user.Id.ToString()),// Subject claim, typically the user ID
-               new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),// Unique identifier for the token
-               new Claim(JwtRegisteredClaimNames.Iat,DateTime.UtcNow.ToString()),// Issued at claim, indicating when the token was issued(date and time)
-               new Claim(ClaimTypes.NameIdentifier,user.PhoneNumber.ToString()),//Unique identifier for the PhoneNumber claim, typically the user's phone number
-               new Claim(ClaimTypes.Name,user.FullName.ToString())//Unique identifier for the Name claim, typically the user's name
-
-
+               new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), // user id
+               new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+               new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
+               new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+               new Claim(ClaimTypes.Name, user.FullName ?? string.Empty),
+               new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+               new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty)
             };
             // Create a symmetric security key using the secret key specified in the configuration settings.
             SymmetricSecurityKey securityKey = new 
@@ -65,7 +65,9 @@ namespace Rased.Core.Servies
             return new AuthenticationResponse
             {
                 PersonName = user.FullName,
-                PhoneNumber = user.PhoneNumber,
+                Email= user.Email ?? string.Empty,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                Password = user.PasswordHash ?? string.Empty,
                 Token = token,
                 Expiration = expiration
             };
