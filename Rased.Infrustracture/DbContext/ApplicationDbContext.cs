@@ -18,6 +18,8 @@ namespace Rased_Project
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Complaint> Complaints => Set<Complaint>();
 
+        public DbSet<Ad> Ads => Set<Ad>();
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

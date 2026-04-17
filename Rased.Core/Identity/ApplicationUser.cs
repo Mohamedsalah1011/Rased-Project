@@ -10,5 +10,7 @@ namespace Rased.Core.Identity
         public String FullName { get; set; } = default!;
         public int SSN { get; set; } = default!;
 
+        public bool IsActive { get; set; } = true;
+
     }
 }
