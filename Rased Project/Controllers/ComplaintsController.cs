@@ -9,7 +9,7 @@ namespace Rased_Project.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+  
     public class ComplaintsController : ControllerBase
     {
         private readonly IComplaintService _complaintService;
@@ -18,7 +18,7 @@ namespace Rased_Project.Controllers
         {
             _complaintService = complaintService;
         }
-
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ComplaintResponseDto>> Create([FromBody] CreateComplaintDto dto)
         {

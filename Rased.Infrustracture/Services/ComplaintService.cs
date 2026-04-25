@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Rased.Core.DTO.Category;
 using Rased.Core.DTO.Complaint;
 using Rased.Core.Entities;
 using Rased.Core.ServiseContracts;
@@ -34,23 +33,20 @@ namespace Rased.Infrustracture.Services
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
                 return new UnauthorizedResult();
 
-            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
-            if (!categoryExists)
-                return new NotFoundObjectResult("Category not found.");
-
             var complaint = new Complaint
             {
                 Id = Guid.NewGuid(),
                 Description = dto.Description,
-                Image = dto.Image,
-                Video = dto.Video,
+                // ?????: ?????? ??? ImagePath ???? ????? ?? ??? Controller
+                Image = dto.ImagePath ?? dto.Image?.FileName,
+                Video = dto.VideoPath ?? dto.Video?.FileName,
                 Lng = dto.Lng,
                 Lat = dto.Lat,
                 Location = dto.Location,
                 Status = "Pending",
                 SerialNumber = GenerateSerialNumber(),
                 UserId = userId,
-                CategoryId = dto.CategoryId
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.Complaints.Add(complaint);
@@ -72,7 +68,6 @@ namespace Rased.Infrustracture.Services
         {
             var complaint = await _context.Complaints
                 .Include(c => c.User)
-                .Include(c => c.Category)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (complaint == null)
@@ -85,7 +80,6 @@ namespace Rased.Infrustracture.Services
         {
             var list = await _context.Complaints
                 .Include(c => c.User)
-                .Include(c => c.Category)
                 .Where(c => c.UserId == userId)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
@@ -97,15 +91,23 @@ namespace Rased.Infrustracture.Services
             return new OkObjectResult(dtos);
         }
 
-        public async Task<ActionResult<List<ComplaintResponseDto>>> GetAllAsync(string? status = null)
+        // ??????? ??????? ?????? ???? ?????? (AIGeneratedText)
+        public async Task<ActionResult<List<ComplaintResponseDto>>> GetAllAsync(string? status = null, string? search = null)
         {
             var query = _context.Complaints
                 .Include(c => c.User)
-                .Include(c => c.Category)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(c => c.Status == status);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                // ????? ???? ????: ??? ??????? ?????? ???? ?????? (AIGeneratedText)
+                query = query.Where(c => c.SerialNumber.Contains(search)
+                                      || c.Description.Contains(search)
+                                      || c.AIGeneratedText.Contains(search));
+            }
 
             var list = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
             var dtos = new List<ComplaintResponseDto>();
@@ -113,6 +115,21 @@ namespace Rased.Infrustracture.Services
                 dtos.Add(await MapToDto(c));
 
             return new OkObjectResult(dtos);
+        }
+
+        // ????? ??? Stats ??????? ?? ?????? ????? ???? (camelCase) ????? "?????"
+        public async Task<ActionResult<object>> GetDashboardStatsAsync()
+        {
+            var stats = new
+            {
+                totalComplaints = await _context.Complaints.CountAsync(),
+                pending = await _context.Complaints.CountAsync(c => c.Status == "Pending"),
+                resolved = await _context.Complaints.CountAsync(c => c.Status == "Resolved"),
+                rejected = await _context.Complaints.CountAsync(c => c.Status == "?????"),
+                todayComplaints = await _context.Complaints.CountAsync(c => c.CreatedAt.Date == DateTime.UtcNow.Date)
+            };
+
+            return new OkObjectResult(stats);
         }
 
         public async Task<IActionResult> UpdateStatusAsync(Guid id, UpdateComplaintStatusDto dto)
@@ -124,20 +141,6 @@ namespace Rased.Infrustracture.Services
             complaint.Status = dto.Status;
             await _context.SaveChangesAsync();
             return new OkResult();
-        }
-
-        public async Task<ActionResult<List<CategoryDto>>> GetCategoriesAsync()
-        {
-            var list = await _context.Categories
-                .OrderBy(c => c.Name)
-                .Select(c => new CategoryDto
-                {
-                    Id = c.Id,
-                    Name = c.Name
-                })
-                .ToListAsync();
-
-            return new OkObjectResult(list);
         }
 
         private static Task<ComplaintResponseDto> MapToDto(Complaint c)
@@ -156,12 +159,7 @@ namespace Rased.Infrustracture.Services
                 SerialNumber = c.SerialNumber,
                 CreatedAt = c.CreatedAt,
                 UserId = c.UserId,
-                UserFullName = c.User?.FullName,
-                Category = c.Category == null ? null : new CategoryDto
-                {
-                    Id = c.Category.Id,
-                    Name = c.Category.Name
-                }
+                UserFullName = c.User?.FullName
             };
             return Task.FromResult(dto);
         }

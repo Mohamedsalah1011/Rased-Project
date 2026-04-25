@@ -19,9 +19,6 @@ namespace Rased.Core.Entities
         public Guid UserId { get; set; }
         public virtual ApplicationUser User { get; set; } = default!;
 
-        public Guid CategoryId { get; set; }
-        public virtual Category Category { get; set; } = default!;
-
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

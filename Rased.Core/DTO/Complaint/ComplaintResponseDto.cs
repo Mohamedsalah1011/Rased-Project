@@ -1,4 +1,3 @@
-using Rased.Core.DTO.Category;
 using System;
 
 namespace Rased.Core.DTO.Complaint
@@ -19,7 +18,5 @@ namespace Rased.Core.DTO.Complaint
 
         public Guid UserId { get; set; }
         public string? UserFullName { get; set; }
-
-        public CategoryDto? Category { get; set; }
     }
 }

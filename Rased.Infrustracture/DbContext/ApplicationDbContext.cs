@@ -30,10 +30,6 @@ namespace Rased_Project
                     .WithMany()
                     .HasForeignKey(c => c.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
-                e.HasOne(c => c.Category)
-                    .WithMany(cat => cat.Complaints)
-                    .HasForeignKey(c => c.CategoryId)
-                    .OnDelete(DeleteBehavior.Restrict);
                 e.HasIndex(c => c.SerialNumber).IsUnique();
             });
 
