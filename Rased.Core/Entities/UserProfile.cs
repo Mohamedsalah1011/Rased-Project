@@ -16,7 +16,11 @@ namespace Rased.Core.Entities
         [StringLength(100)]
         public string FullName { get; set; } = default!;
 
-        public int SSN { get; set; }
+        [Required]
+        [StringLength(14)]
+        public string SSN { get; set; } = default!;
+
+        public string? PlateNumber { get; set; }
 
         public string? ProfilePictureUrl { get; set; }
 

@@ -1,4 +1,4 @@
-﻿using Rased.Core.DTO.Account;
+using Rased.Core.DTO.Account;
 using Rased.Core.Identity;
 using System;
 using System.Collections.Generic;
@@ -8,6 +8,6 @@ namespace Rased.Core.ServiseContracts
 {
     public interface IJWTService
     {
-        AuthenticationResponse GenerateToken(ApplicationUser user);
+        AuthenticationResponse GenerateToken(ApplicationUser user, string? fullName = null);
     }
 }

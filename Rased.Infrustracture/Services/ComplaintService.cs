@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Rased.Core.DTO.Category;
 using Rased.Core.DTO.Complaint;
 using Rased.Core.Entities;
 using Rased.Core.ServiseContracts;
@@ -34,10 +33,6 @@ namespace Rased.Infrustracture.Services
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
                 return new UnauthorizedResult();
 
-            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
-            if (!categoryExists)
-                return new NotFoundObjectResult("Category not found.");
-
             var complaint = new Complaint
             {
                 Id = Guid.NewGuid(),
@@ -47,10 +42,9 @@ namespace Rased.Infrustracture.Services
                 Lng = dto.Lng,
                 Lat = dto.Lat,
                 Location = dto.Location,
-                Status = "Pending",
+                complaintStatus = "Pending",
                 SerialNumber = GenerateSerialNumber(),
-                UserId = userId,
-                CategoryId = dto.CategoryId
+                UserId = userId
             };
 
             _context.Complaints.Add(complaint);
@@ -72,7 +66,7 @@ namespace Rased.Infrustracture.Services
         {
             var complaint = await _context.Complaints
                 .Include(c => c.User)
-                .Include(c => c.Category)
+                    .ThenInclude(u => u.UserProfile)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (complaint == null)
@@ -85,7 +79,7 @@ namespace Rased.Infrustracture.Services
         {
             var list = await _context.Complaints
                 .Include(c => c.User)
-                .Include(c => c.Category)
+                    .ThenInclude(u => u.UserProfile)
                 .Where(c => c.UserId == userId)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
@@ -101,11 +95,11 @@ namespace Rased.Infrustracture.Services
         {
             var query = _context.Complaints
                 .Include(c => c.User)
-                .Include(c => c.Category)
+                    .ThenInclude(u => u.UserProfile)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status))
-                query = query.Where(c => c.Status == status);
+                query = query.Where(c => c.complaintStatus == status);
 
             var list = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
             var dtos = new List<ComplaintResponseDto>();
@@ -121,23 +115,9 @@ namespace Rased.Infrustracture.Services
             if (complaint == null)
                 return new NotFoundResult();
 
-            complaint.Status = dto.Status;
+            complaint.complaintStatus = dto.Status;
             await _context.SaveChangesAsync();
             return new OkResult();
-        }
-
-        public async Task<ActionResult<List<CategoryDto>>> GetCategoriesAsync()
-        {
-            var list = await _context.Categories
-                .OrderBy(c => c.Name)
-                .Select(c => new CategoryDto
-                {
-                    Id = c.Id,
-                    Name = c.Name
-                })
-                .ToListAsync();
-
-            return new OkObjectResult(list);
         }
 
         private static Task<ComplaintResponseDto> MapToDto(Complaint c)
@@ -148,7 +128,7 @@ namespace Rased.Infrustracture.Services
                 Description = c.Description,
                 Image = c.Image,
                 Video = c.Video,
-                Status = c.Status,
+                Status = c.complaintStatus,
                 Lng = c.Lng,
                 Lat = c.Lat,
                 Location = c.Location,
@@ -156,12 +136,7 @@ namespace Rased.Infrustracture.Services
                 SerialNumber = c.SerialNumber,
                 CreatedAt = c.CreatedAt,
                 UserId = c.UserId,
-                UserFullName = c.User?.FullName,
-                Category = c.Category == null ? null : new CategoryDto
-                {
-                    Id = c.Category.Id,
-                    Name = c.Category.Name
-                }
+                UserFullName = c.User?.UserProfile?.FullName
             };
             return Task.FromResult(dto);
         }

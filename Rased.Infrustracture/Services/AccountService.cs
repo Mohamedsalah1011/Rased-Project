@@ -58,13 +58,22 @@ namespace Rased.Infrustracture.Services
 
                 if (result.Succeeded)
                 {
+                    // Ensure Role exists
+                    var roleName = registerDTO.UserType.ToString();
+                    if (!await _roleManager.RoleExistsAsync(roleName))
+                    {
+                        await _roleManager.CreateAsync(new ApplicationRole { Name = roleName });
+                    }
+                    await _userManager.AddToRoleAsync(user, roleName);
+
                     // Create Profile
                     var profile = new UserProfile
                     {
                         Id = Guid.NewGuid(),
                         UserId = user.Id,
                         FullName = registerDTO.FullName!,
-                        SSN = registerDTO.SSN
+                        SSN = registerDTO.SSN,
+                        PlateNumber = registerDTO.UserType == Core.Enums.UserType.Driver ? registerDTO.PlateNumber : null
                     };
                     _db.UserProfiles.Add(profile);
                     await _db.SaveChangesAsync();
@@ -190,6 +199,7 @@ namespace Rased.Infrustracture.Services
             if (profile == null)
                 return new NotFoundObjectResult("Profile not found");
 
+            var userRoles = await _userManager.GetRolesAsync(profile.User);
             var response = new ProfileResponseDto
             {
                 Id = profile.UserId,
@@ -197,6 +207,7 @@ namespace Rased.Infrustracture.Services
                 Email = profile.User.Email!,
                 PhoneNumber = profile.User.PhoneNumber!,
                 SSN = profile.SSN,
+                PlateNumber = userRoles.Contains("Driver") ? profile.PlateNumber : null,
                 ProfilePictureUrl = profile.ProfilePictureUrl
             };
 
@@ -212,6 +223,7 @@ namespace Rased.Infrustracture.Services
                 return new NotFoundObjectResult("Profile not found");
 
             profile.FullName = updateProfileDto.FullName;
+            profile.PlateNumber = updateProfileDto.PlateNumber;
             
             // Update phone number in Identity table
             var user = await _userManager.FindByIdAsync(userId.ToString());

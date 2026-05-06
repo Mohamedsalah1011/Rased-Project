@@ -14,7 +14,5 @@ namespace Rased.Core.DTO.Complaint
         public double? Lat { get; set; }
         public string? Location { get; set; }
 
-        [Required]
-        public Guid CategoryId { get; set; }
     }
 }

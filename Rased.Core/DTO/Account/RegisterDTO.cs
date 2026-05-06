@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
+using Rased.Core.Enums;
 
 namespace Rased.Core.DTO.Account
 {
@@ -30,6 +28,11 @@ namespace Rased.Core.DTO.Account
         public string ConfirmPassword { get; set; } = default!;
 
         [Required(ErrorMessage = "SSN is required")]
-        public int SSN { get; set; } = default!;
+        [RegularExpression(@"^[23][0-9]{13}$", ErrorMessage = "Invalid Egyptian SSN")]
+        public string SSN { get; set; } = default!;
+
+        public UserType UserType { get; set; } = UserType.User;
+
+        public string? PlateNumber { get; set; }
     }
 }

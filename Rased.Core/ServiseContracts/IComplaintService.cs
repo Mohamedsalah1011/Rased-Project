@@ -16,6 +16,5 @@ namespace Rased.Core.ServiseContracts
         Task<ActionResult<List<ComplaintResponseDto>>> GetByUserAsync(Guid userId);
         Task<ActionResult<List<ComplaintResponseDto>>> GetAllAsync(string? status = null);
         Task<IActionResult> UpdateStatusAsync(Guid id, UpdateComplaintStatusDto dto);
-        Task<ActionResult<List<CategoryDto>>> GetCategoriesAsync();
     }
 }

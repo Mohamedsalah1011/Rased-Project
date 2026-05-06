@@ -15,8 +15,9 @@ namespace Rased_Project
         {
         }
 
-        public DbSet<Category> Categories => Set<Category>();
+        public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
         public DbSet<Complaint> Complaints => Set<Complaint>();
+        public DbSet<Ad> Ads => Set<Ad>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -28,19 +29,20 @@ namespace Rased_Project
                     .WithMany()
                     .HasForeignKey(c => c.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
-                e.HasOne(c => c.Category)
-                    .WithMany(cat => cat.Complaints)
-                    .HasForeignKey(c => c.CategoryId)
-                    .OnDelete(DeleteBehavior.Restrict);
+
                 e.HasIndex(c => c.SerialNumber).IsUnique();
             });
 
-            // Seed default categories (optional - remove if you manage categories elsewhere)
-            builder.Entity<Category>().HasData(
-                new Category { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Name = "General Complaint" },
-                new Category { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Name = "Infrastructure" },
-                new Category { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Name = "Safety" }
-            );
+            // Configure 1-to-1 relationship between ApplicationUser and UserProfile
+            builder.Entity<UserProfile>(e =>
+            {
+                e.HasOne(up => up.User)
+                    .WithOne(u => u.UserProfile)
+                    .HasForeignKey<UserProfile>(up => up.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                e.Property(up => up.FullName).IsRequired().HasMaxLength(100);
+            });
         }
     }
 }

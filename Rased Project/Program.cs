@@ -29,6 +29,7 @@ namespace Rased_Project
             builder.Services.AddTransient<IJWTService, JwtService>();
             builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
             builder.Services.AddScoped<IOtpService, OtpService>();
+            builder.Services.AddScoped<IAdsService, AdsService>();
             builder.Services.AddMemoryCache();
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

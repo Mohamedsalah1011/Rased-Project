@@ -9,6 +9,7 @@ namespace Rased.Core.DTO.Account.Profile
         public string Email { get; set; } = default!;
         public string PhoneNumber { get; set; } = default!;
         public string SSN { get; set; } = default!;
+        public string? PlateNumber { get; set; }
         public string? ProfilePictureUrl { get; set; }
     }
 }

@@ -1,14 +1,13 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using Rased.Core.Entities;
 
 namespace Rased.Core.Identity
 {
     public class ApplicationUser : IdentityUser<Guid>
     {
-        public String FullName { get; set; } = default!;
-        public int SSN { get; set; } = default!;
+        public bool IsActive { get; set; } = true;
 
+        public virtual UserProfile? UserProfile { get; set; }
     }
 }

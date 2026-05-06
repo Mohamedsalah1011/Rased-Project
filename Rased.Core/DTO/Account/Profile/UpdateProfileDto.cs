@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -8,5 +8,6 @@ namespace Rased.Core.DTO.Account.Profile
     {
         public string FullName { get; set; } = default!;
         public string PhoneNumber { get; set; } = default!;
+        public string? PlateNumber { get; set; }
     }
 }

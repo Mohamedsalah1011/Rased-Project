@@ -49,11 +49,5 @@ namespace Rased_Project.Controllers
             return await _complaintService.UpdateStatusAsync(id, dto);
         }
 
-        [HttpGet("categories")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<CategoryDto>>> GetCategories()
-        {
-            return await _complaintService.GetCategoriesAsync();
-        }
     }
 }
