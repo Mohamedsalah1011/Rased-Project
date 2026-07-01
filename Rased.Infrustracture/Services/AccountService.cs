@@ -12,6 +12,7 @@ using Rased.Core.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq; // تم التأكد من وجودها لاستخدام .ToList()
 
 namespace Rased.Infrustracture.Services
 {
@@ -77,11 +78,11 @@ namespace Rased.Infrustracture.Services
                     };
                     _db.UserProfiles.Add(profile);
                     await _db.SaveChangesAsync();
-                    
+
                     var sendOtpRequest = new SendOtpDto
                     {
                         Email = user.Email,
-                        Type = OtpType.Register 
+                        Type = OtpType.Register
                     };
 
                     await _otpService.SendOtpAsync(sendOtpRequest);
@@ -137,7 +138,13 @@ namespace Rased.Infrustracture.Services
             if (result.Succeeded)
             {
                 var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-                var authenticationResponse = _jwtService.GenerateToken(user, profile?.FullName);
+
+                // 🛠️ التعديل هنا: جلب الأدوار (Roles) الخاصة بالمستخدم من الـ Identity
+                var userRoles = await _userManager.GetRolesAsync(user);
+
+                // 🛠️ تمرير الأدوار كـ List إلى ميثود توليد التوكن ليتم حقنها
+                var authenticationResponse = _jwtService.GenerateToken(user, profile?.FullName, userRoles.ToList());
+
                 return new OkObjectResult(authenticationResponse);
             }
             else
@@ -224,7 +231,7 @@ namespace Rased.Infrustracture.Services
 
             profile.FullName = updateProfileDto.FullName;
             profile.PlateNumber = updateProfileDto.PlateNumber;
-            
+
             // Update phone number in Identity table
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user != null)
@@ -256,7 +263,7 @@ namespace Rased.Infrustracture.Services
                 return new BadRequestObjectResult(errorMessage);
             }
 
-            return new OkObjectResult(new { Message = "Password changed successfully" });
+            return new OkObjectResult(new { Message = "Password cٍhanged successfully" });
         }
     }
 }

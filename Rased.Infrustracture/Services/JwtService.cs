@@ -21,18 +21,16 @@ namespace Rased.Infrustracture.Services
             _configuration = configuration;
         }
 
-        public AuthenticationResponse GenerateToken(ApplicationUser user, string? fullName = null)
+        // التعديل هنا: أضفنا باراميتر الـ roles لاستقبال أدوار المستخدم
+        public AuthenticationResponse GenerateToken(ApplicationUser user, string? fullName = null, List<string>? roles = null)
         {
-            // Calculate the token expiration time by adding a specified number of minutes to the current UTC time.
-            // The number of minutes is retrieved from the configuration settings
-            DateTime expiration = DateTime.UtcNow.AddMinutes
-                (Convert.ToDouble(_configuration["Jwt:EXPIRATION_MINUTES"]));
-            // Create an array of claims to be included in the JWT token.
-            // Claims are pieces of information about the user that are encoded in the token.
+            DateTime expiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:EXPIRATION_MINUTES"]));
             var issuedAt = EpochTime.GetIntDate(DateTime.UtcNow);
-            Claim[] claims = new[]
+
+            // 1. تحويل الـ Claims لقائمة ديناميكية لإضافة الأدوار براحتنا
+            var claimList = new List<Claim>
             {
-               new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), // user id
+               new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                new Claim(JwtRegisteredClaimNames.Iat, issuedAt.ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -40,40 +38,40 @@ namespace Rased.Infrustracture.Services
                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
                new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty)
             };
-            // Create a symmetric security key using the secret key specified in the configuration settings.
-            SymmetricSecurityKey securityKey = new 
-                SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_configuration["Jwt:KEY"])
-                );
 
-            // Create signing credentials using the security key and specifying the hashing algorithm (HMAC SHA256 in this case).
-            SigningCredentials signingCredentials = new 
-                SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            // 2. التعديل السحري: لو اليوزر له أدوار في الداتابيز، هنلف عليها ونحقنها جوه التوكن كـ Role Claim
+            if (roles != null && roles.Any())
+            {
+                foreach (var role in roles)
+                {
+                    claimList.Add(new Claim(ClaimTypes.Role, role));
+                }
+            }
 
-            // Create a JwtSecurityToken object using the specified issuer, audience, claims, expiration time, and signing credentials.
+            SymmetricSecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:KEY"]));
+            SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            // 3. تمرير الـ Claims بعد تحويلها لمصفوفة مجدداً
             JwtSecurityToken tokenGenerator = new JwtSecurityToken(
                 issuer: _configuration["Jwt:ISSUER"],
                 audience: _configuration["Jwt:AUDIENCE"],
-                claims: claims,
+                claims: claimList.ToArray(),
                 expires: expiration,
                 signingCredentials: signingCredentials
             );
 
-            // Create a JwtSecurityTokenHandler to write the token as a string.
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             string token = tokenHandler.WriteToken(tokenGenerator);
 
-            // Return an AuthenticationResponse object containing the user's name, phone number, generated token, and expiration time.
             return new AuthenticationResponse
             {
                 PersonName = fullName,
-                Email= user.Email ?? string.Empty,
+                Email = user.Email ?? string.Empty,
                 PhoneNumber = user.PhoneNumber ?? string.Empty,
                 Password = user.PasswordHash ?? string.Empty,
                 Token = token,
                 Expiration = expiration
             };
-
         }
     }
 }

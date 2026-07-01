@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="Rased Project/Rased.UI.csproj" />
     <Project Path="Rased.Core/Rased.Core.csproj" Id="6e34fb85-4075-4bf8-a767-62a2120aecf4" />

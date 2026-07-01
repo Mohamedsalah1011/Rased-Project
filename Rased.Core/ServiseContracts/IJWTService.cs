@@ -1,13 +1,13 @@
 using Rased.Core.DTO.Account;
 using Rased.Core.Identity;
-using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace Rased.Core.ServiseContracts
 {
     public interface IJWTService
     {
-        AuthenticationResponse GenerateToken(ApplicationUser user, string? fullName = null);
+        // التعديل هنا: أضفنا باراميتر الـ roles ليتطابق مع الـ Implementation
+        AuthenticationResponse GenerateToken(ApplicationUser user, string? fullName = null, List<string>? roles = null);
     }
 }

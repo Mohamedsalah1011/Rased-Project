@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Rased.Core.DTO.Ads;
-using Rased.Core.ServiseContracts;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Rased.Core.Entities; // تأكد من النيم سبيس الخاص بـ Ad
+using Rased_Project; // اسم الداتا بيز كونتكست
 
 namespace Rased_Project.Controllers
 {
@@ -12,51 +10,42 @@ namespace Rased_Project.Controllers
     [ApiController]
     public class AdsController : ControllerBase
     {
-        private readonly IAdsService _adsService;
-
-        public AdsController(IAdsService adsService)
-        {
-            _adsService = adsService;
-        }
+        private readonly ApplicationDbContext _db;
+        public AdsController(ApplicationDbContext db) { _db = db; }
 
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<AdResponseDto>>> GetAll([FromQuery] bool? activeOnly = null)
-        {
-            // If the user is not an admin, they can only see active ads
-            if (!User.IsInRole("Admin"))
-            {
-                activeOnly = true;
-            }
-            return await _adsService.GetAllAdsAsync(activeOnly);
-        }
-
-        [HttpGet("{id:guid}")]
-        [AllowAnonymous]
-        public async Task<ActionResult<AdResponseDto>> GetById(Guid id)
-        {
-            return await _adsService.GetAdByIdAsync(id);
-        }
+        public async Task<IActionResult> GetAll() => Ok(await _db.Ads.ToListAsync());
 
         [HttpPost]
-        [Authorize(Roles = "Admin")] // Only Admins can create Ads
-        public async Task<ActionResult<AdResponseDto>> Create([FromBody] CreateAdDto dto)
-        {
-            return await _adsService.CreateAdAsync(dto);
-        }
-
-        [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Create([FromBody] Ad adModel)
         {
-            return await _adsService.DeleteAdAsync(id);
+            _db.Ads.Add(adModel);
+            await _db.SaveChangesAsync();
+            return Ok(new { Message = "تمت الإضافة بنجاح!" });
         }
 
-        [HttpPatch("{id:guid}/toggle-status")]
+        // الميثود دي هي اللي كانت ناقصة وبتسبب الـ 404
+        [HttpPost("{id}/toggle")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ToggleStatus(Guid id)
         {
-            return await _adsService.ToggleAdStatusAsync(id);
+            var ad = await _db.Ads.FindAsync(id);
+            if (ad == null) return NotFound();
+            ad.IsActive = !ad.IsActive; // عكس الحالة
+            await _db.SaveChangesAsync();
+            return Ok(new { IsActive = ad.IsActive });
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var ad = await _db.Ads.FindAsync(id);
+            if (ad == null) return NotFound();
+            _db.Ads.Remove(ad);
+            await _db.SaveChangesAsync();
+            return Ok();
         }
     }
 }
