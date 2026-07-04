@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -20,9 +19,8 @@ namespace Rased_Project
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
-
+            builder.Services.AddScoped<RideMatchingService>();
 
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
@@ -31,14 +29,11 @@ namespace Rased_Project
             builder.Services.AddScoped<IOtpService, OtpService>();
             builder.Services.AddScoped<IAdsService, AdsService>();
             builder.Services.AddMemoryCache();
+
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            //builder.Services.AddOpenApi();
-
-            //Identity
+            // Identity Configuration
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -76,19 +71,16 @@ namespace Rased_Project
                 };
             });
 
-
-
-
+            // 🛠️ [تعديل] إضافة سياسة CORS مسمّية وصريحة لفتح الصلاحيات بالكامل
             builder.Services.AddCors(options => {
-                options.AddDefaultPolicy(policy => {
-                    policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                options.AddPolicy("AllowAll", policy => {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
                 });
             });
 
-            //builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-
-
 
             var app = builder.Build();
 
@@ -99,30 +91,23 @@ namespace Rased_Project
                 c.RoutePrefix = string.Empty;
             });
 
-
             // Configure the HTTP request pipeline.
             app.UseHsts();
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-            
-            //if (app.Environment.IsDevelopment())
-            //{
-            //    app.MapOpenApi();
-            //}
-
-    
 
             app.UseRouting();
-            app.UseCors();
 
+            // 🛠️ [تعديل] تفعيل السياسة المسمّية بالترتيب الصحيح (بعد الـ Routing وقبل الـ Auth)
+            app.UseCors("AllowAll");
 
             app.UseAuthentication();
             app.UseAuthorization();
 
-
             app.MapControllers();
 
-            app.Run();
+            // 🛠️ [تعديل] تشغيل السيرفر بشكل Async صحيح متوافق مع الـ Task Main
+            await app.RunAsync();
         }
     }
 }
