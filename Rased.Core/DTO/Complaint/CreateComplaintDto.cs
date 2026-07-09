@@ -14,5 +14,6 @@ namespace Rased.Core.DTO.Complaint
         public double? Lat { get; set; }
         public string? Location { get; set; }
 
+
     }
 }

@@ -17,7 +17,6 @@ namespace Rased.Infrustracture.Services
             _context = context;
         }
 
-        // 1. تحديث موقع المستخدم (راكب أو سواق) أو إنشائه لو مش موجود
         public async Task UpdateUserLocationAsync(Guid userId, UpdateLocationDto dto)
         {
             var existingLocation = await _context.UserLiveLocations
@@ -25,7 +24,6 @@ namespace Rased.Infrustracture.Services
 
             if (existingLocation != null)
             {
-                // تحديث البيانات الحالية
                 existingLocation.Lat = dto.Lat;
                 existingLocation.Lng = dto.Lng;
                 existingLocation.IsSharingLive = dto.IsSharingLive;
@@ -34,7 +32,6 @@ namespace Rased.Infrustracture.Services
             }
             else
             {
-                // إنشاء سجل جديد لأول مرة
                 var newLocation = new UserLiveLocation
                 {
                     Id = Guid.NewGuid(),
@@ -51,15 +48,13 @@ namespace Rased.Infrustracture.Services
             await _context.SaveChangesAsync();
         }
 
-        // 2. جلب الركاب النشطين في محيط السواق (مثلاً في نطاق 5 كيلو متر)
         public async Task<List<LiveUserDto>> GetActivePassengersAsync(double driverLat, double driverLng, double radiusInKm = 5.0)
         {
-            // بنجيب الناس اللي فاتحة لايف والـ Update بتاعها ملقطش من أكتر من 5 دقائق (عشان الدقة)
             var activeTimeThreshold = DateTime.UtcNow.AddMinutes(-5);
 
             var activePassengers = await _context.UserLiveLocations
                 .Include(l => l.User)
-                .ThenInclude(u => u.UserProfile) // عشان نجيب الاسم الكامل للراكب
+                .ThenInclude(u => u.UserProfile) 
                 .Where(l => l.UserType == "Passenger" && l.IsSharingLive && l.UpdatedAt >= activeTimeThreshold)
                 .ToListAsync();
 
@@ -83,7 +78,6 @@ namespace Rased.Infrustracture.Services
             return nearbyPassengers;
         }
 
-        // 3. جلب أماكن التجمع (Hotspots) وحساب عدد الركاب المتواجدين في كل مكان
         public async Task<List<HotspotDto>> GetHotspotsAsync(double radiusInMeters = 500)
         {
             var hotspots = await _context.GatheringSpots.ToListAsync();
@@ -97,7 +91,6 @@ namespace Rased.Infrustracture.Services
 
             foreach (var spot in hotspots)
             {
-                // عد الركاب اللي المسافة بينهم وبين الميدان أقل من 500 متر
                 int count = activePassengers.Count(p =>
                     CalculateDistance(spot.Lat, spot.Lng, p.Lat, p.Lng) <= (radiusInMeters / 1000.0));
 
@@ -114,10 +107,9 @@ namespace Rased.Infrustracture.Services
             return result;
         }
 
-        // دالة سحرية لحساب المسافة بين نقطتين على الخريطة بالكيلومتر (Haversine Formula)
         private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            var R = 6371; // نصف قطر الأرض بالكيلومتر
+            var R = 6371; 
             var dLat = ToRadians(lat2 - lat1);
             var dLon = ToRadians(lon2 - lon1);
             var a =

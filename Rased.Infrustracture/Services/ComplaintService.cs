@@ -41,6 +41,7 @@ namespace Rased.Infrustracture.Services
                 Lat = dto.Lat,
                 Location = dto.Location,
                 complaintStatus = "Pending",
+                Status = "0", // جعل الحقلين متزامنين عند الإنشاء أيضاً
                 SerialNumber = GenerateSerialNumber(),
                 UserId = userId
             };
@@ -70,23 +71,31 @@ namespace Rased.Infrustracture.Services
             return dtos;
         }
 
-        // --- الميثود المعدلة للسيرش بنمرة العربية وحل اختفاء الشكاوي ---
+        // --- ميثود جلب البيانات المعدلة لمنع تسريب البلاغات وتجنب التضارب ---
         public async Task<List<ComplaintResponseDto>> GetAllAsync(string? status = null, string? search = null)
         {
             var query = _context.Complaints.Include(c => c.User).ThenInclude(u => u.UserProfile).AsQueryable();
 
-            // الفلترة الشاملة للحالة (عشان الشكاوي المختفية)
             if (!string.IsNullOrWhiteSpace(status) && status != "All" && status != "الكل")
             {
                 if (status == "Pending")
-                    query = query.Where(c => c.complaintStatus == "Pending" || c.complaintStatus == "0" || c.complaintStatus == "قيد الانتظار" || c.Status == "0");
+                {
+                    // جلب الشكاوى التي حالتها الحالية Pending أو قيد الانتظار، ولا نلجأ لحقل Status إلا لو كان الحقل الأساسي فارغاً
+                    query = query.Where(c => c.complaintStatus == "Pending" || c.complaintStatus == "0" || c.complaintStatus == "قيد الانتظار" ||
+                                            ((c.complaintStatus == null || c.complaintStatus == "") && c.Status == "0"));
+                }
                 else if (status == "Resolved")
-                    query = query.Where(c => c.complaintStatus == "Resolved" || c.complaintStatus == "1" || c.complaintStatus == "تم الحل" || c.Status == "1");
+                {
+                    query = query.Where(c => c.complaintStatus == "Resolved" || c.complaintStatus == "1" || c.complaintStatus == "تم الحل" ||
+                                            ((c.complaintStatus == null || c.complaintStatus == "") && c.Status == "1"));
+                }
                 else if (status == "Rejected")
-                    query = query.Where(c => c.complaintStatus == "Rejected" || c.complaintStatus == "2" || c.complaintStatus == "مرفوض" || c.Status == "2");
+                {
+                    query = query.Where(c => c.complaintStatus == "Rejected" || c.complaintStatus == "2" || c.complaintStatus == "مرفوض" ||
+                                            ((c.complaintStatus == null || c.complaintStatus == "") && c.Status == "2"));
+                }
             }
 
-            // السيرش بنمرة العربية (AIGeneratedText) + الوصف + رقم البلاغ
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(c => c.SerialNumber.Contains(search) ||
@@ -101,11 +110,20 @@ namespace Rased.Infrustracture.Services
             return dtos;
         }
 
+        // --- ميثود تحديث الحالة المعدلة لمزامنة الحقلين معاً في قاعدة البيانات ---
         public async Task<bool> UpdateStatusAsync(Guid id, UpdateComplaintStatusDto dto)
         {
             var complaint = await _context.Complaints.FindAsync(id);
             if (complaint == null) return false;
+
+            // 1. تحديث الحقل الأساسي الذي تقرأ منه لوحة التحكم والـ View
             complaint.complaintStatus = dto.Status;
+
+            // 2. تحديث الحقل الثاني لضمان المزامنة التامة ومنع تسريب البيانات عند الفلترة
+            if (dto.Status == "Pending") complaint.Status = "0";
+            else if (dto.Status == "Resolved") complaint.Status = "1";
+            else if (dto.Status == "Rejected") complaint.Status = "2";
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -135,11 +153,11 @@ namespace Rased.Infrustracture.Services
                 Description = c.Description,
                 Image = c.Image,
                 Video = c.Video,
-                Status = c.complaintStatus, // اعتمدنا هنا على complaintStatus
+                Status = c.complaintStatus,
                 Lng = c.Lng,
                 Lat = c.Lat,
                 Location = c.Location,
-                AIGeneratedText = c.AIGeneratedText, // مهم جداً عشان السيرش
+                AIGeneratedText = c.AIGeneratedText,
                 SerialNumber = c.SerialNumber,
                 CreatedAt = c.CreatedAt,
                 UserId = c.UserId,

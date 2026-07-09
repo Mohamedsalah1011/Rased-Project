@@ -71,7 +71,7 @@ namespace Rased_Project
                 };
             });
 
-            // 🛠️ [تعديل] إضافة سياسة CORS مسمّية وصريحة لفتح الصلاحيات بالكامل
+            // إضافة سياسة CORS مسمّية وصريحة لفتح الصلاحيات بالكامل
             builder.Services.AddCors(options => {
                 options.AddPolicy("AllowAll", policy => {
                     policy.AllowAnyOrigin()
@@ -94,11 +94,13 @@ namespace Rased_Project
             // Configure the HTTP request pipeline.
             app.UseHsts();
             app.UseHttpsRedirection();
+
+            // تفعيل الـ Static Files الافتراضية (هتقرأ تلقائياً كل ما هو داخل wwwroot)
             app.UseStaticFiles();
 
             app.UseRouting();
 
-            // 🛠️ [تعديل] تفعيل السياسة المسمّية بالترتيب الصحيح (بعد الـ Routing وقبل الـ Auth)
+            // تفعيل السياسة المسمّية بالترتيب الصحيح (بعد الـ Routing وقبل الـ Auth)
             app.UseCors("AllowAll");
 
             app.UseAuthentication();
@@ -106,7 +108,7 @@ namespace Rased_Project
 
             app.MapControllers();
 
-            // 🛠️ [تعديل] تشغيل السيرفر بشكل Async صحيح متوافق مع الـ Task Main
+            // تشغيل السيرفر بشكل Async صحيح متوافق مع الـ Task Main
             await app.RunAsync();
         }
     }
