@@ -13,6 +13,8 @@ namespace Rased.Core.DTO.Complaint
         public double? Lng { get; set; }
         public double? Lat { get; set; }
         public string? Location { get; set; }
+        public string? AIGeneratedText { get; set; }
+
 
 
     }

@@ -43,7 +43,8 @@ namespace Rased.Infrustracture.Services
                 complaintStatus = "Pending",
                 Status = "0", // جعل الحقلين متزامنين عند الإنشاء أيضاً
                 SerialNumber = GenerateSerialNumber(),
-                UserId = userId
+                UserId = userId,
+                AIGeneratedText = dto.AIGeneratedText,
             };
             _context.Complaints.Add(complaint);
             await _context.SaveChangesAsync();
